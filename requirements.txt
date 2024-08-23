@@ -1,2 +1,5 @@
 django 
 djangorestframework
+stripe
+python-dotenv
+

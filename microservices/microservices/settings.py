@@ -11,6 +11,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,6 +31,11 @@ SECRET_KEY = 'django-insecure-o=tp_w=k(_&7l=#cukfrs+mc-!k^rt(-9qz(#(sg@s$n$slbl+
 DEBUG = True
 
 ALLOWED_HOSTS = []
+
+
+# API KEYS
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 
 
 # Application definition
