@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Checkout</title>
+</head>
+<body>
+    <h1>PayMongo Checkout</h1>
+    <button id="checkout-button">Proceed to Payment</button>
+
+    <script>
+        document.getElementById('checkout-button').addEventListener('click', function() {
+            fetch('/create-checkout-session/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.checkout_url) {
+                    window.location.href = data.checkout_url;
+                } else {
+                    alert('Failed to create checkout session.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

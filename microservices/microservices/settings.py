@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from decouple import config
 
 load_dotenv()
 
@@ -30,12 +31,12 @@ SECRET_KEY = 'django-insecure-o=tp_w=k(_&7l=#cukfrs+mc-!k^rt(-9qz(#(sg@s$n$slbl+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # API KEYS
-STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
-STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
+PAYMONGO_SECRET_KEY = config('PAYMONGO_SECRET_KEY')
+PAYMONGO_PUBLISHABLE_KEY = config('PAYMONGO_PUBLISHABLE_KEY')
 
 
 # Application definition
@@ -47,7 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'payments'
+    'decouple',
 ]
 
 MIDDLEWARE = [

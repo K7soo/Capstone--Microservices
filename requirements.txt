@@ -1,5 +1,4 @@
 django 
 djangorestframework
-stripe
 python-dotenv
-
+python-decouple

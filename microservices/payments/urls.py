@@ -1,7 +1,9 @@
 from django.urls import path
-from .views import InitiatePaymentView, ConfirmPaymentView
+from . import views
 
 urlpatterns = [
-    path('initiate/', InitiatePaymentView.as_view(), name='initiate_payment'),
-    path('confirm/', ConfirmPaymentView.as_view(), name='confirm_payment'),
+    path('', views.home, name='home'),
+    path('create-checkout-session/', views.create_checkout_session, name='create-checkout-session'),
+    path('payment/success/', views.payment_success, name='payment-success'),
+    path('payment/failed/', views.payment_failed, name='payment-failed'),
 ]
