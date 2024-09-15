@@ -1,10 +1,30 @@
+{% load static %}
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment Success</title>
+    <link rel="stylesheet" href="{% static 'css/page.css' %}">
 </head>
 <body>
-    <h1>Payment Successful!</h1>
-    <p>Thank you for your purchase.</p>
+    <div class="container">
+        <header>
+            <h1>Payment Successful!</h1>
+        </header>
+        <main>
+            <div class="success-message">
+                <h2>Thank You for Your Payment!</h2>
+            </div>
+            <div class="buttons">
+                <a href="index.html" class="btn">Go to Homepage</a>
+                <!-- <a href="view-receipt.html" class="btn">View Receipt</a> -->
+            </div>
+        </main>
+        <footer>
+            <p>&copy; 2024, Tikme Dine</p>
+        </footer>
+    </div>
 </body>
 </html>

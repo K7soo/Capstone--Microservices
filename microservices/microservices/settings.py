@@ -37,7 +37,7 @@ ALLOWED_HOSTS = ["*"]
 # API KEYS
 PAYMONGO_SECRET_KEY = config('PAYMONGO_SECRET_KEY')
 PAYMONGO_PUBLISHABLE_KEY = config('PAYMONGO_PUBLISHABLE_KEY')
-
+URL='https://api.paymongo.com/v1/checkout_sessions'
 
 # Application definition
 
