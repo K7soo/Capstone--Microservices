@@ -66,8 +66,8 @@ ROOT_URLCONF = 'microservices.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
+        'DIRS': [os.path.join(BASE_DIR, 'payments/templates')],  # Add global template directories here if necessary
+        'APP_DIRS': True,  # Ensures Django looks for templates in the app-specific templates/ directory
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -127,7 +127,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    BASE_DIR / "payments/static",  # Assuming static files are in a folder called 'static' at the root
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
