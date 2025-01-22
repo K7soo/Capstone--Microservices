@@ -68,5 +68,7 @@ def create_checkout_session(request):
         return JsonResponse({'error': 'Invalid request method. Only POST is allowed.'}, status=405)
 
 
+# response -> post(detail.response) -> 
 
+# post(req.data) -> finance.db (trinbox)
 
