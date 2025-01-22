@@ -12,88 +12,59 @@ import json
 def home(request):
     return render(request, 'index.html')
 
-def payment_success(request):
-    return render(request, 'payment_success.html')
 
-def payment_failed(request):
-    return render(request, 'payment_failed.html')
+PAYMONGO_SECRET_KEY = "sk_test_LfZRntyxmZJah7iaFbYkkfTc"
+PAYMONGO_URL = "https://api.paymongo.com/v1/checkout_sessions"
 
-logger = logging.getLogger(__name__)
 
-@csrf_exempt
 def create_checkout_session(request):
     if request.method == 'POST':
-        # Parse JSON data from the request
-        try:
-            data = json.loads(request.body)
-            amount = data.get('amount')
-            description = data.get('description')
-            item_name = data.get('item_name')
-            quantity = data.get('quantity')
-            customer_name = data.get('name')  # Assuming 'name' is sent from the frontend
-            customer_email = data.get('email')  # Assuming 'email' is sent from the frontend
+        # Parse data
+        data = json.loads(request.body)
+        amount = data.get('amount')
+        description = data.get('description')
+        name = data.get('name')
+        quantity = data.get('quantity')
+        reference_number = data.get('reference_number')
 
-            # Ensure all required fields are provided
-            if not all([amount, description, item_name, quantity, customer_name, customer_email]):
-                return JsonResponse({'error': 'Missing required fields'}, status=400)
-
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
-        url = settings.URL
-        secret_key = settings.PAYMONGO_SECRET_KEY
-        encoded_secret_key = base64.b64encode(f"{secret_key}:".encode()).decode()
-
+        # Prepare PayMongo API request
+        url = "https://api.paymongo.com/v1/checkout_sessions"
         headers = {
-            'Authorization': f'Basic {encoded_secret_key}',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
+            "accept": "application/json",
+            "Content-Type": "application/json",
+            "authorization": "Basic YOUR_SECRET_KEY_BASE64_ENCODED"
         }
-
-        # Prepare the data to send to PayMongo API following the format you provided
-        checkout_data = {
+        payload = {
             "data": {
                 "attributes": {
-                    "billing": {
-                        "name": customer_name,
-                        "email": customer_email
-                    },
                     "send_email_receipt": False,
-                    "show_description": False,
+                    "show_description": True,
                     "show_line_items": True,
+                    "description": description,
                     "line_items": [
                         {
                             "currency": "PHP",
-                            "amount": amount,  # Amount should be in centavos
-                            "name": item_name,
-                            "quantity": quantity
+                            "amount": amount,
+                            "description": description,
+                            "name": name,
+                            "quantity": quantity,
                         }
                     ],
-                    "payment_method_types": ["gcash"],  # Assuming gcash for now
-                    "reference_number": "TR-001",  # Sample reference number
-                    "redirect": {
-                        "success": "http://localhost:8000/payment/success",  # Success URL
-                        "failed": "http://localhost:8000/payment/failed"    # Failed URL
-                    }
+                    "payment_method_types": ["gcash"],
+                    "reference_number": reference_number
                 }
             }
         }
 
+        # Make the API call to PayMongo
         try:
-            response = requests.post(url, headers=headers, json=checkout_data)
+            response = requests.post(url, json=payload, headers=headers)
             response.raise_for_status()
-
-            if response.status_code == 201:
-                checkout_url = response.json()['data']['attributes']['checkout_url']
-                return JsonResponse({'checkout_url': checkout_url})
-            else:
-                return JsonResponse({'error': 'Failed to create checkout session', 'details': response.text}, status=400)
-
+            checkout_url = response.json().get('data').get('attributes').get('checkout_url')
+            return JsonResponse({'checkout_url': checkout_url})
         except requests.exceptions.RequestException as e:
-            logger.error(f"Request Exception: {e}")
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Invalid method'}, status=405)
 
-    else:
-        return JsonResponse({'error': 'Invalid request method. Use POST instead of GET.'}, status=400)
 
 

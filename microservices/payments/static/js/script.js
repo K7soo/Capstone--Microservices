@@ -1,55 +1,89 @@
-document.getElementById('payment-form').addEventListener('submit', function(event) {
-    event.preventDefault(); // Prevent default form submission
+document.addEventListener("DOMContentLoaded", () => {
+    // Function to extract CSRF token from cookies
+    function getCsrfToken() {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const trimmedCookie = cookie.trim();
+            if (trimmedCookie.startsWith('csrftoken=')) {
+                return trimmedCookie.split('=')[1];
+            }
+        }
+        console.error("CSRF token not found in cookies.");
+        return null; // Return null if no CSRF token is found
+    }
 
-    // Collect form data
-    const amount = document.getElementById('amount').value;
-    const description = document.getElementById('description').value;
-    const item_name = document.getElementById('item_name').value;
-    const quantity = document.getElementById('quantity').value;
-    const name = document.getElementById('name').value;
-    const email = document.getElementById('email').value;
+    // Retrieve CSRF token
+    const csrfToken = getCsrfToken();
 
-    // Prepare data to send
+    // Data payload for the fetch request
     const data = {
-        amount: parseInt(amount, 10),  // Convert to integer
-        description: description,
-        item_name: item_name,
-        quantity: parseInt(quantity, 10),  // Convert to integer
-        name: name,  
-        email: email,
+        data: {
+            attributes: {
+                send_email_receipt: true,
+                show_description: true,
+                show_line_items: true,
+                description: 'Description',
+                line_items: [
+                    {
+                        currency: 'PHP',
+                        amount: 2000, // Amount in centavos
+                        description: 'testing',
+                        name: 'Product',
+                        quantity: 1
+                    }
+                ],
+                payment_method_types: [
+                    'gcash',
+                    'grab_pay',
+                    'card',
+                    'qrph',
+                    'brankas_bdo',
+                    'brankas_landbank',
+                    'paymaya'
+                ],
+                reference_number: '001'
+            }
+        }  
     };
 
-    // Log the data being sent (for debugging)
-    console.log('Data being sent:', data);
-
-    // Send POST request to Django backend
-    fetch('/create-checkout-session/', {  // URL found in urls.py
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(errorDetails => {
-                console.error('API error details:', errorDetails);
-                throw new Error(`Error ${response.status}: ${errorDetails.error || 'Unknown error'}`);
+    // Event listener for the button click
+    const startCheckoutButton = document.getElementById("startCheckout");
+    if (startCheckoutButton) {
+        startCheckoutButton.addEventListener("click", () => {
+            console.log('Sending payload:', JSON.stringify(data, null, 2));
+            fetch('https://api.paymongo.com/v1/checkout_sessions', {
+                method: 'POST',
+                headers: {
+                    accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    authorization: 'Basic c2tfdGVzdF9MZlpSbnR5eG1aSmFoN2lhRmJZa2tmVGM6'
+                },
+                body: JSON.stringify(data), // Send the data payload
+            })
+            .then((res) => {
+                if (!res.ok) {
+                    return res.json().then((errorDetails) => {
+                        console.error('Error details:', errorDetails);
+                        throw new Error(`HTTP error! Status: ${res.status}`);
+                    });
+                }
+                return res.json();
+            })
+            .then((res) => {
+                console.log('Response:', res); // Log the response for debugging
+                if (res.data?.attributes?.checkout_url) {
+                    // Redirect to the PayMongo checkout page
+                    window.location.href = res.data.attributes.checkout_url;
+                    console.log(res)
+                } else {
+                    console.error('Checkout URL not found in response.');
+                }
+            })
+            .catch((err) => {
+                console.error('Error:', err);
             });
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Success:', data);
-        if (data.checkout_url) {
-            // Redirect to the checkout URL
-            window.location.href = data.checkout_url;
-        } else {
-            console.error('Failed to get checkout URL:', data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-    });
+        });
+    } else {
+        console.error("Start checkout button not found.");
+    }
 });
