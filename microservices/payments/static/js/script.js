@@ -11,76 +11,75 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("CSRF token not found in cookies.");
         return null; // Return null if no CSRF token is found
     }
-
+    let referenceCounter = 1
     // Retrieve CSRF token
     const csrfToken = getCsrfToken();
 
-    // Data payload for the fetch request
-    const data = {
-        data: {
-            attributes: {
-                send_email_receipt: true,
-                show_description: true,
-                show_line_items: true,
-                description: 'Description',
-                line_items: [
-                    {
-                        currency: 'PHP',
-                        amount: 2000, // Amount in centavos
-                        description: 'testing',
-                        name: 'Product',
-                        quantity: 1
-                    }
-                ],
-                payment_method_types: [
-                    'gcash',
-                    'grab_pay',
-                    'card',
-                    'qrph',
-                    'brankas_bdo',
-                    'brankas_landbank',
-                    'paymaya'
-                ],
-                reference_number: '001'
-            }
-        }  
-    };
-
-    // Event listener for the button click
+    // Event listener for a button click
     const startCheckoutButton = document.getElementById("startCheckout");
     if (startCheckoutButton) {
         startCheckoutButton.addEventListener("click", () => {
-            console.log('Sending payload:', JSON.stringify(data, null, 2));
-            fetch('https://api.paymongo.com/v1/checkout_sessions', {
+            // Gather dynamic data from the form
+            const maindescription = document.getElementById("checkoutDescription").value;
+            const description = document.getElementById("itemDescription").value;
+            const amount = parseInt(document.getElementById("itemAmount").value) * 100; // Convert to centavos
+            const name = document.getElementById("itemName").value;
+            const paymentMethod = document.getElementById("paymentMethod").value; // Get selected payment method
+            const referenceNumber = `REF-${String(referenceCounter).padStart(3, '0')}`;
+            referenceCounter++; // Increment for the next transaction
+
+            const payload = {
+                data: {
+                    attributes: {
+                        send_email_receipt: true,
+                        show_description: true,
+                        show_line_items: true,
+                        description: maindescription,
+                        line_items: [
+                            {
+                                currency: "PHP",
+                                amount: amount, // Amount in centavos
+                                description: description,
+                                name: name,
+                                quantity: 1
+                            }
+                        ],
+                        payment_method_types: [paymentMethod],
+                        reference_number: referenceNumber
+                    }
+                }
+            };
+
+            // Make the POST request
+            fetch('/create-checkout-session/', {
                 method: 'POST',
                 headers: {
-                    accept: 'application/json',
                     'Content-Type': 'application/json',
-                    authorization: 'Basic c2tfdGVzdF9MZlpSbnR5eG1aSmFoN2lhRmJZa2tmVGM6'
+                    'X-CSRFToken': csrfToken, // CSRF token for Django
                 },
-                body: JSON.stringify(data), // Send the data payload
+                body: JSON.stringify(payload), // Send the data payload
             })
-            .then((res) => {
-                if (!res.ok) {
-                    return res.json().then((errorDetails) => {
-                        console.error('Error details:', errorDetails);
-                        throw new Error(`HTTP error! Status: ${res.status}`);
+            .then((response) => {
+                if (!response.ok) {
+                    return response.json().then((error) => {
+                        console.error("Error details:", error);
+                        throw new Error(`HTTP error! Status: ${response.status}`);
                     });
                 }
-                return res.json();
+                return response.json();
             })
-            .then((res) => {
-                console.log('Response:', res); // Log the response for debugging
-                if (res.data?.attributes?.checkout_url) {
+            .then((data) => {
+                console.log("Response:", data); // Log the response for debugging
+                const checkoutUrl = data.details?.data?.attributes?.checkout_url;
+                if (checkoutUrl) {
                     // Redirect to the PayMongo checkout page
-                    window.location.href = res.data.attributes.checkout_url;
-                    console.log(res)
+                    window.location.href = checkoutUrl;
                 } else {
-                    console.error('Checkout URL not found in response.');
+                    console.error("Checkout URL not found in response.");
                 }
             })
-            .catch((err) => {
-                console.error('Error:', err);
+            .catch((error) => {
+                console.error("Error:", error);
             });
         });
     } else {
