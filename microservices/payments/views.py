@@ -1,13 +1,8 @@
-import requests
-from django.conf import settings
+import requests, base64, json
 from django.http import JsonResponse
 from django.shortcuts import render
-from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-import logging
-import base64
-import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Views for homepage and payment success/failure
 def home(request):
@@ -25,7 +20,7 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-
+@csrf_exempt
 def create_checkout_session(request):
     if request.method == 'POST':
         try:
@@ -33,7 +28,7 @@ def create_checkout_session(request):
             incoming_data = json.loads(request.body)
 
             # PayMongo API endpoint
-            checkout_url = 'https://api.paymongo.com/v1/checkout_sessions'
+            paymongo_url = 'https://api.paymongo.com/v1/checkout_sessions'
 
             # Extract the required fields from the incoming payload
             payload = {
@@ -59,23 +54,29 @@ def create_checkout_session(request):
             }
 
             # Send the request to PayMongo API
-            response = requests.post(checkout_url, headers=headers, json=payload)
+            response = requests.post(paymongo_url, headers=headers, json=payload)
 
             # Check the status code of the response
             if response.status_code == 201:
                 response_data = response.json()
 
-                # Extract the checkout URL
-                checkout_url = response_data['data']['attributes'].get('checkout_url')
-                    # Send data to the finance system
-                send_data_to_finance(response_data)
+                # Extract the checkout session ID
+                checkout_id = response_data['data']['id']
+                checkout_url = response_data['data']['attributes']['checkout_url']
 
-                    # Return the checkout URL to the frontend
-                return JsonResponse({'checkout_url': checkout_url}, status=201)
+                # Call the function to send data to finance
+                send_data_to_finance(checkout_id)
+
+                # Return the checkout URL to the frontend
+                return JsonResponse({'checkout_url': checkout_url['data']['attributes']['checkout_url']}, status=200)
 
             else:
                 # Log the full error response for debugging
                 print("PayMongo Error Response:", response.json())
+                response_data = response.json()
+                if response.status_code == 200:
+                    checkout_id = response_data['data']['id']
+                    send_data_to_finance(checkout_id)
                 return JsonResponse({'error': 'Failed to create checkout session', 'details': response.json()}, status=response.status_code)
 
         except json.JSONDecodeError:
@@ -85,45 +86,53 @@ def create_checkout_session(request):
             print("Unexpected Error:", str(e))
             return JsonResponse({'error': str(e)}, status=500)
 
-    return JsonResponse({'error': 'Invalid request method. Only POST is allowed.'}, status=405)
+    return JsonResponse({'error': 'Invalid request method. Only POST is allowed.'}, status=400)
    
-    
-def send_data_to_finance(response_data):
+@csrf_exempt
+def send_data_to_finance(checkout_id):
     try:
-        # Extract the total amount
-        line_items = response_data['data']['attributes'].get('line_items', [])
-        total_amount = sum(item.get('amount', 0) for item in line_items)
-
-        # Fallback to payment_intent if line_items are missing or zero
-        if total_amount == 0:
-            total_amount = response_data['data']['attributes']['payment_intent']['attributes'].get('amount', 0)
-
-        # Convert `created_at` to ISO 8601 format
-        created_at_timestamp = response_data['data']['attributes'].get('created_at', None)
-        if created_at_timestamp:
-            payment_date = datetime.utcfromtimestamp(created_at_timestamp).isoformat() + "Z"  # Add 'Z' for UTC time
-        else:
-            payment_date = None  # Handle missing timestamp appropriately
-
-        # Prepare the finance payload
-        finance_payload = {
-            "transaction_id": response_data['data']['id'],
-            "PaymentDate": payment_date,
-            "Amount": total_amount / 100,  # Convert centavos to PHP
-            "PaymentMethod": ', '.join(response_data['data']['attributes']['payment_method_types']),
-            "Description": response_data['data']['attributes']['description']
+        # Fetch the session details using the checkout_id
+        session_url = f'https://api.paymongo.com/v1/checkout_sessions/{checkout_id}'
+        headers = {
+            'Authorization': f'Basic {base64.b64encode(f"{PAYMONGO_SECRET_KEY}:".encode()).decode()}',
+            'Accept': 'application/json',
         }
+        session_response = requests.get(session_url, headers=headers)
 
-        # Send data to the finance system
-        finance_url = "http://127.0.0.1:8000w/payment-record/"  # Replace with your finance endpoint
-        finance_response = requests.post(finance_url, json=finance_payload)
+        if session_response.status_code == 200:
+            session_data = session_response.json()
+ 
+            # Extract the necessary data
+            attributes = session_data['data']['attributes']
+            total_amount = attributes['line_items'][0]['amount'] / 100  # Convert centavos to PHP
+            created_at_timestamp = session_data['data']['attributes'].get('created_at', None)
+            if created_at_timestamp:
+                payment_date = datetime.fromtimestamp(created_at_timestamp, tz=timezone.utc).strftime('%Y-%m-%d')  # Extract and format the date
+            else:
+                payment_date = None
 
-        if finance_response.status_code == 201:
-            print("Data sent to finance system successfully")
+            # Prepare finance payload
+            finance_payload = {
+                "transaction_id": session_data['data']['id'],
+                "PaymentDate": payment_date,
+                "Amount": total_amount,
+                "PaymentMethod": ', '.join(attributes['payment_method_types']),
+                "Description": attributes['description']
+            }
+
+            # Send data to the finance system
+            finance_url = "http://127.0.0.1:8000/payment-record/"  # Replace with your finance endpoint
+            finance_response = requests.post(finance_url, json=finance_payload)
+
+            if finance_response.status_code == 201:
+                print("Data sent to finance system successfully")
+            else:
+                print("Failed to send data to finance:", finance_response.json())
+
         else:
-            print("Failed to send data to finance:", finance_response.json())
-    except KeyError as e:
-        print(f"Error extracting or sending data to finance system: {e}")
+            print("Failed to fetch session details:", session_response.json())
+
     except Exception as e:
-        print(f"Error sending data to finance system: {e}")
-    
+        print("Error in send_data_to_finance:", str(e))
+
+

@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const paymentMethod = document.getElementById("paymentMethod").value; // Get selected payment method
             const referenceNumber = `REF-${String(referenceCounter).padStart(3, '0')}`;
             referenceCounter++; // Increment for the next transaction
-            success_url = "http://127.0.0.1:8000/success/"
+            success_url = "http://127.0.0.1:8001/success/"
 
             const payload = {
                 data: {
@@ -35,14 +35,14 @@ document.addEventListener("DOMContentLoaded", () => {
                         send_email_receipt: true,
                         show_description: true,
                         show_line_items: true,
-                        description: maindescription,
-                        success_url: success_url,
+                        description: maindescription,   // place order
+                        success_url: success_url,       // manage order URL
                         line_items: [
                             {
                                 currency: "PHP",
                                 amount: amount, // Amount in centavos
-                                description: description,
-                                name: name,
+                                description: description, //sample description
+                                name: name,               // Food item
                                 quantity: 1
                             }
                         ],
@@ -72,10 +72,10 @@ document.addEventListener("DOMContentLoaded", () => {
             })
             .then((data) => {
                 console.log("Response:", data); // Log the response for debugging
-                const checkoutUrl = data.details?.data?.attributes?.checkout_url;
-                if (checkoutUrl) {
+                const checkout_url = data.details?.data?.attributes?.checkout_url;
+                if (checkout_url) {
                     // Redirect to the PayMongo checkout page
-                    window.location.href = checkoutUrl;
+                    window.location.href = checkout_url;
                 } else {
                     console.error("Checkout URL not found in response.");
                 }
