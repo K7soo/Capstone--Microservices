@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const paymentMethod = document.getElementById("paymentMethod").value; // Get selected payment method
             const referenceNumber = `REF-${String(referenceCounter).padStart(3, '0')}`;
             referenceCounter++; // Increment for the next transaction
+            success_url = "http://127.0.0.1:8000/success/"
 
             const payload = {
                 data: {
@@ -35,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         show_description: true,
                         show_line_items: true,
                         description: maindescription,
+                        success_url: success_url,
                         line_items: [
                             {
                                 currency: "PHP",
