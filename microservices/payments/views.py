@@ -121,7 +121,7 @@ def send_data_to_finance(checkout_id):
             }
 
             # Send data to the finance system
-            finance_url = "http://127.0.0.1:8000/payment-record/"  # Replace with your finance endpoint
+            finance_url = "http://127.0.0.1:8005/payment-record/"  # Replace with your finance endpoint
             finance_response = requests.post(finance_url, json=finance_payload)
 
             if finance_response.status_code == 201:
