@@ -134,5 +134,3 @@ def send_data_to_finance(checkout_id):
 
     except Exception as e:
         print("Error in send_data_to_finance:", str(e))
-
-
