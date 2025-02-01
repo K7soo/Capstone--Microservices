@@ -104,7 +104,7 @@ def send_data_to_finance(checkout_id):
  
             # Extract the necessary data
             attributes = session_data['data']['attributes']
-            total_amount = attributes['line_items'][0]['amount'] / 100  # Convert centavos to PHP
+            total_amount = sum(item.get('amount', 0) * item.get('quantity', 1) for item in attributes.get('line_items', [])) / 100
             created_at_timestamp = session_data['data']['attributes'].get('created_at', None)
             if created_at_timestamp:
                 payment_date = datetime.fromtimestamp(created_at_timestamp, tz=timezone.utc).strftime('%Y-%m-%d')  # Extract and format the date
